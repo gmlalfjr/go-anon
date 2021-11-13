@@ -1,0 +1,70 @@
+service: go-timeline-service
+
+frameworkVersion: '2'
+
+plugins:
+  - serverless-go-plugin
+  - serverless-offline
+provider:
+  name: aws
+  runtime: go1.x
+  lambdaHashingVersion: 20201221
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  region: ap-southeast-1
+  iamRoleStatements:
+    - ${file(iam/TimelineTableIAM.yml):TimelineTableIAM}
+  environment:
+    TIMELINE_TABLE_NAME: ${self:custom.TimelineTable.name}
+    SET_TIME_CREATE_TIMELINE: 300000000000
+
+
+
+configValidationMode: 'warn'
+package:
+  individually: true
+  pattern:
+    - ./bin/**
+
+resources:
+  Resources:
+    TimelineTable: ${file(resources/TimelineTable.yml):TimelineTable}
+
+functions:
+  postTimeline:
+    handler: src/controllers/postTimelineController/main.go
+    events:
+      - http:
+          path: /api/timeline/post
+          method: post
+          authorizer: ${self:custom.authorizer}
+  getTimeline:
+    handler: src/controllers/getTimelineController/main.go
+    events:
+      - http:
+          path: /api/timeline/all
+          method: get
+          authorizer: ${self:custom.authorizer}
+  getTimelineDetail:
+    handler: src/controllers/getDetailController/main.go
+    events:
+      - http:
+          path: /api/timeline/detail/{idDetail}
+          method: get
+          authorizer: ${self:custom.authorizer}
+  deleteUserPost:
+    handler: src/controllers/deletePostController/main.go
+    events:
+      - http:
+          path: /api/timeline/delete/{idPostDelete}
+          method: delete
+          authorizer: ${self:custom.authorizer}
+
+
+custom:
+  authorizer: arn:aws:lambda:${aws:region}:${aws:accountId}:function:auth-service-${self:provider.stage}-authorize
+  TimelineTable:
+    name: !Ref TimelineTable
+    arn: !GetAtt TimelineTable.Arn
+  bundle:
+    linting: true

@@ -1,0 +1,13 @@
+TimelineTableIAM:
+  Effect: Allow
+  Action:
+    - dynamodb:PutItem
+    - dynamodb:Scan
+    - dynamodb:GetItem
+    - dynamodb:UpdateItem
+    - dynamodb:DeleteItem
+    - dynamodb:Query
+  Resource:
+    - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev
+    - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev/index/typeGSI
+    - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev/index/usernameAndCreatedAtGSI

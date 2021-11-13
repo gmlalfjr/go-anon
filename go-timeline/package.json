@@ -1,0 +1,26 @@
+{
+  "name": "go-timeline",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "ansi-styles": "^3.2.1",
+    "color-convert": "^1.9.3",
+    "color-name": "^1.1.3",
+    "escape-string-regexp": "^1.0.5",
+    "has-flag": "^3.0.0",
+    "serverless-go-build": "0.0.6",
+    "serverless-offline": "^8.2.0",
+    "serverless-pseudo-parameters": "^2.6.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.14",
+    "serverless-go-plugin": "^2.0.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "nodemon --watch ./ -e go,js --exec make build"
+  },
+  "author": "",
+  "license": "ISC"
+}
