@@ -1,0 +1,32 @@
+CommentTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: CommentTable-${self:provider.stage}
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: S
+      - AttributeName: postId
+        AttributeType: S
+      - AttributeName: username
+        AttributeType: S
+    KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+    GlobalSecondaryIndexes:
+      - IndexName: postIdAndUsernameGSI
+        KeySchema: 
+          - AttributeName: postId
+            KeyType: HASH
+          - AttributeName: username
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+      - IndexName: postIdGSI
+        KeySchema: 
+          - AttributeName: postId
+            KeyType: HASH
+        Projection:
+          ProjectionType: ALL
+
+

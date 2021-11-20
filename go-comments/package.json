@@ -1,0 +1,20 @@
+{
+  "name": "go-comments",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "serverless-go-build": "0.0.6",
+    "serverless-offline": "^8.2.0",
+    "serverless-pseudo-parameters": "^2.6.1"
+  },
+  "devDependencies": {
+    "serverless-go-plugin": "^2.0.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "nodemon --watch ./ -e go,js --exec make build"
+  },
+  "author": "",
+  "license": "ISC"
+}

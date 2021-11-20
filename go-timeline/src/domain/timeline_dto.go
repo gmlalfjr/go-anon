@@ -24,6 +24,7 @@ type Timeline struct {
 	Type         string    `json:"type" validate:"required,oneof='CURHAT' 'CARI_PASANGAN'"`
 	TotalLike    int8      `json:"totalLike"`
 	TotalComment int8      `json:"totalComment"`
+	IsPrivate    bool      `json:"isPrivate"`
 	TotalReport  int8      `json:"totalReport"`
 	CreatedAt    time.Time `json:"createdAt"`
 	ModifiedAt   time.Time `json:"modifiedAt"`

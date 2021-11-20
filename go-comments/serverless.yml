@@ -1,0 +1,55 @@
+service: go-comment-service
+
+frameworkVersion: '2'
+
+plugins:
+  - serverless-go-plugin
+  - serverless-offline
+provider:
+  name: aws
+  runtime: go1.x
+  lambdaHashingVersion: 20201221
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  region: ap-southeast-1
+  iamRoleStatements:
+    - ${file(iam/CommentTableIAM.yml):CommentTableIAM}
+  environment:
+    COMMENT_TABLE_NAME: ${self:custom.CommentTable.name}
+    TIMELINE_TABLE_NAME: ${self:custom.TimelineTable.name}
+
+configValidationMode: 'warn'
+package:
+  individually: true
+  pattern:
+    - ./bin/**
+
+resources:
+  Resources:
+    CommentTable: ${file(resources/CommentTable.yml):CommentTable}
+
+functions:
+  createComments:
+    handler: src/controllers/createComment/main.go
+    events:
+      - http:
+          path: /api/comment/post/{postId}
+          method: post
+          authorizer: ${self:custom.authorizer}
+  getComments:
+    handler: src/controllers/getAllCommentByTimelineId/main.go
+    events:
+      - http:
+          path: /api/comment/get/{postId}
+          method: get
+          authorizer: ${self:custom.authorizer}
+
+custom:
+  authorizer: arn:aws:lambda:${aws:region}:${aws:accountId}:function:auth-service-${self:provider.stage}-authorize
+  CommentTable:
+    name: !Ref CommentTable
+    arn: !GetAtt CommentTable.Arn
+  TimelineTable:
+    name: TimelineTable-dev
+  bundle:
+    linting: true

@@ -23,7 +23,6 @@ func (t *Timeline) PostTimeline() *response.RestErr {
 	dynamo := dynamodb.New(sess)
 	data, errGetDetail := t.GetDetail(t.Username)
 	if errGetDetail != nil {
-
 		log.Println("Error marshalling item: ", errGetDetail.Error)
 		return response.Error("Error when marshalling dyanmodb item", 400, errors.New(errGetDetail.Error))
 	}
@@ -32,8 +31,7 @@ func (t *Timeline) PostTimeline() *response.RestErr {
 	}
 
 	item, err := dynamodbattribute.MarshalMap(&t)
-	// newT2 := time.Now().Add(time.Minute * 15)
-	// newT2.
+
 	if err != nil {
 		log.Println("Error marshalling item: ", err.Error())
 		return response.Error("Error when marshalling create dyanmodb item", 400, err)
@@ -72,8 +70,7 @@ func (t *Timeline) GetTimeline(limit int64, key *ExlusiveStartKey) ([]Timeline, 
 
 	if key.Id != "" {
 		params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
-			"id": {S: aws.String(key.Id)},
-			// "createdAt": {S: aws.String(key.CreatedAt)},
+			"id":   {S: aws.String(key.Id)},
 			"type": {S: aws.String(key.Type)},
 		}
 	}
@@ -193,7 +190,7 @@ func (t *Timeline) DeleteUserPost(id string, username string) (bool, *response.R
 		return false, response.Error("not found id", err.Status, errors.New(err.Error))
 	}
 	if data.Username != username {
-		return false, response.Error("Got Delete timeline", err.Status, errors.New("not authorize to delete this post"))
+		return false, response.Error("Cant delete this post", 404, errors.New("not authorize to delete this post"))
 	}
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
