@@ -59,6 +59,13 @@ functions:
           path: /api/timeline/delete/{idPostDelete}
           method: delete
           authorizer: ${self:custom.authorizer}
+  getOwnUserPost:
+    handler: src/controllers/getAllOwnController/main.go
+    events:
+      - http:
+          path: /api/timeline/get-own
+          method: get
+          authorizer: ${self:custom.authorizer}
 
 
 custom:

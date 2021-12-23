@@ -10,30 +10,12 @@ import (
 	response "github.com/gmlalfjr/go_CommonResponse/utils"
 )
 
-
 func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	exlusive := &domain.ExlusiveStartKey{}
+	exlusive := &domain.ExlusiveStartKeyUsername{}
+	username := request.RequestContext.Authorizer["username"].(string)
 	limit := request.QueryStringParameters["limit"]
-	statusKey := request.QueryStringParameters["status"]
-	postType := request.QueryStringParameters["type"]
-	createdAtKey := request.QueryStringParameters["createdAt"]
-	lastEvaluatedKey := request.QueryStringParameters["lastEvaluatedKey"]
-
-	typeKey := request.QueryStringParameters["type"]
-	if lastEvaluatedKey != "" {
-		exlusive = &domain.ExlusiveStartKey{
-			Id:        lastEvaluatedKey,
-			Type:      typeKey,
-			CreatedAt: createdAtKey,
-			Status:    statusKey,
-		}
-	}
-
-	if limit == "" {
+	if limit == ""{
 		limit = "10"
-	}
-	if postType == "" {
-		postType = "ALL"
 	}
 	convertLimitDataType, err := strconv.ParseInt(limit, 10, 64)
 	if err != nil {
@@ -43,11 +25,12 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 			StatusCode: 400,
 		})
 	}
-	timeline := &domain.Timeline{
-		Type: postType,
-	}
 
-	res, pagination, errGetTimeline := services.GetTimeline(timeline, convertLimitDataType, exlusive)
+	res, pagination, errGetTimeline := services.GetOwnPost(username, convertLimitDataType, exlusive)
+
+	if limit == "" {
+		limit = "10"
+	}
 
 	if errGetTimeline != nil {
 		return response.FailResponse(&response.ErrorWrapper{

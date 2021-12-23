@@ -53,25 +53,48 @@ func (t *Timeline) GetTimeline(limit int64, key *ExlusiveStartKey) ([]Timeline, 
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	dynamo := dynamodb.New(sess)
-
+	dates := time.Now().UTC().String()
 	params := &dynamodb.QueryInput{
-		TableName:              aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
-		KeyConditionExpression: aws.String("#type = :type"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":type": {S: aws.String(t.Type)},
-		},
-		ExpressionAttributeNames: map[string]*string{
-			"#type": aws.String("type"),
-		},
+		TableName:        aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
 		Limit:            aws.Int64(int64(limit)),
-		IndexName:        aws.String("typeGSI"),
 		ScanIndexForward: aws.Bool(false),
 	}
 
-	if key.Id != "" {
-		params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
-			"id":   {S: aws.String(key.Id)},
-			"type": {S: aws.String(key.Type)},
+	if t.Type == "ALL" {
+		params.KeyConditionExpression = aws.String("#status = :status and #createdAt > :createdAt")
+		params.IndexName = aws.String("statusAndCreatedAtGSI")
+		params.ExpressionAttributeValues = map[string]*dynamodb.AttributeValue{
+			":status":    {S: aws.String("OK")},
+			":createdAt": {S: aws.String(dates)},
+		}
+		params.ExpressionAttributeNames = map[string]*string{
+			"#status":    aws.String("status"),
+			"#createdAt": aws.String("createdAt"),
+		}
+		if key.Id != "" {
+			params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
+				"id":        {S: aws.String(key.Id)},
+				"status":    {S: aws.String(key.Status)},
+				"createdAt": {S: aws.String(key.CreatedAt)},
+			}
+		}
+	} else {
+		params.KeyConditionExpression = aws.String("#type = :type and #createdAt > :createdAt")
+		params.IndexName = aws.String("typeAndCreatedAtGSI")
+		params.ExpressionAttributeValues = map[string]*dynamodb.AttributeValue{
+			":type":      {S: aws.String(t.Type)},
+			":createdAt": {S: aws.String(dates)},
+		}
+		params.ExpressionAttributeNames = map[string]*string{
+			"#type":      aws.String("type"),
+			"#createdAt": aws.String("createdAt"),
+		}
+		if key.Id != "" {
+			params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
+				"id":        {S: aws.String(key.Id)},
+				"type":      {S: aws.String(key.Type)},
+				"createdAt": {S: aws.String(key.CreatedAt)},
+			}
 		}
 	}
 
@@ -126,7 +149,7 @@ func (t *Timeline) GetDetail(username string) (*Timeline, *response.RestErr) {
 		IndexName:        aws.String("usernameAndCreatedAtGSI"),
 		ScanIndexForward: aws.Bool(false),
 	}
-	os.Getenv("SET_TIME_CREATE_TIMELINE")
+
 	query, err := dynamo.Query(params)
 	if err != nil {
 		return nil, response.Error("Failed Query Get Last Item", 500, err)
@@ -173,7 +196,7 @@ func (t *Timeline) GetTimelineDetail(id string) (*Timeline, *response.RestErr) {
 	}
 
 	if len(get.Item) <= 0 {
-		return nil, response.Error("Id Not Found", 404, errors.New("id Not Found"))
+		return nil, response.Error("Not Found Error", 404, errors.New("post not found"))
 	}
 	timeline := &Timeline{}
 	err = dynamodbattribute.UnmarshalMap(get.Item, &timeline)
@@ -209,4 +232,63 @@ func (t *Timeline) DeleteUserPost(id string, username string) (bool, *response.R
 	}
 
 	return true, nil
+}
+
+func (t *Timeline) GetOwnUserPost(username string, limit int64, key *ExlusiveStartKeyUsername) ([]Timeline, *PaginationTimeline, *response.RestErr) {
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	dynamo := dynamodb.New(sess)
+	dates := time.Now().UTC().String()
+	params := &dynamodb.QueryInput{
+		TableName:              aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
+		KeyConditionExpression: aws.String("#username = :username and #createdAt > :createdAt"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":username":  {S: aws.String(username)},
+			":createdAt": {S: aws.String(dates)},
+		},
+		ExpressionAttributeNames: map[string]*string{
+			"#username":  aws.String("username"),
+			"#createdAt": aws.String("createdAt"),
+		},
+		Limit:            aws.Int64(int64(limit)),
+		IndexName:        aws.String("usernameAndCreatedAtGSI"),
+		ScanIndexForward: aws.Bool(false),
+	}
+
+	if key.Id != "" {
+		params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
+			"id":   {S: aws.String(key.Id)},
+			"type": {S: aws.String(key.Username)},
+		}
+	}
+
+	query, err := dynamo.Query(params)
+	if err != nil {
+		return nil, nil, response.Error("Failed Query List Timeline", 500, err)
+	}
+
+	var results []Timeline
+	for _, i := range query.Items {
+		timeline := Timeline{}
+
+		err = dynamodbattribute.UnmarshalMap(i, &timeline)
+		if err != nil {
+			log.Println("Got error unmarshalling", err)
+			return nil, nil, response.Error("Got error unmarshallin", 500, err)
+		}
+
+		results = append(results, timeline)
+	}
+	pagination := PaginationTimeline{}
+	err = dynamodbattribute.UnmarshalMap(query.LastEvaluatedKey, &pagination)
+	if err != nil {
+		log.Println("Got error unmarshalling", err)
+		return nil, nil, response.Error("Got error unmarshallin", 500, err)
+	}
+	if pagination.Id == "" && pagination.Type == "" {
+		return results, nil, nil
+	}
+
+	return results, &pagination, nil
 }

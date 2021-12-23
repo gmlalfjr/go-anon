@@ -9,5 +9,6 @@ TimelineTableIAM:
     - dynamodb:Query
   Resource:
     - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev
-    - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev/index/typeGSI
     - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev/index/usernameAndCreatedAtGSI
+    - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev/index/statusAndTypeGSI
+    - arn:aws:dynamodb:ap-southeast-1:811197814826:table/TimelineTable-dev/index/statusAndCreatedAtGSI

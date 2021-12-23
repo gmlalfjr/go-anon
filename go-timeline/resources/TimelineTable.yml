@@ -12,14 +12,26 @@ TimelineTable:
         AttributeType: S
       - AttributeName: createdAt
         AttributeType: S
+      - AttributeName: status
+        AttributeType: S
     KeySchema:
       - AttributeName: id
         KeyType: HASH
     GlobalSecondaryIndexes:
-      - IndexName: typeGSI
+      - IndexName: statusAndCreatedAtGSI
         KeySchema:
-          - AttributeName: type
+          - AttributeName: status
             KeyType: HASH
+          - AttributeName: createdAt
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+      - IndexName: statusAndTypeGSI
+        KeySchema:
+          - AttributeName: status
+            KeyType: HASH
+          - AttributeName: type
+            KeyType: RANGE
         Projection:
           ProjectionType: ALL
       - IndexName: usernameAndCreatedAtGSI
@@ -30,11 +42,3 @@ TimelineTable:
             KeyType: RANGE
         Projection:
           ProjectionType: ALL
-    # LocalSecondaryIndexes:
-    #   - IndexName: timelineLSI
-    #     KeySchema:
-    #       - AttributeName: timelineId
-    #         KeyType: HASH
-    #     Projection:
-    #       ProjectionType: ALL
-

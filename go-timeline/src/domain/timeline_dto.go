@@ -9,11 +9,20 @@ import (
 type PaginationTimeline struct {
 	Id   string `json:"id"`
 	Type string `json:"type"`
+	CreatedAt string `json:"createdAt"`
+	Status    string `json:"status"`
 }
 
 type ExlusiveStartKey struct {
-	Id   string `json:"id"`
-	Type string `json:"type"`
+	Id        string `json:"id"`
+	Type      string `json:"type"`
+	CreatedAt string `json:"createdAt"`
+	Status    string `json:"status"`
+}
+
+type ExlusiveStartKeyUsername struct {
+	Id       string `json:"id"`
+	Username string `json:"username"`
 }
 
 type Timeline struct {
@@ -26,6 +35,7 @@ type Timeline struct {
 	TotalComment int8      `json:"totalComment"`
 	IsPrivate    bool      `json:"isPrivate"`
 	TotalReport  int8      `json:"totalReport"`
+	Status       string    `json:"status"`
 	CreatedAt    time.Time `json:"createdAt"`
 	ModifiedAt   time.Time `json:"modifiedAt"`
 }

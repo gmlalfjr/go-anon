@@ -21,7 +21,7 @@ func PostTimeline(t *domain.Timeline, username string) (*domain.Timeline, *respo
 	t.TotalLike = 0
 	t.TotalReport = 0
 	t.TimelineId = timelineId
-
+	t.Status = "OK"
 	postErr := t.PostTimeline()
 	if postErr != nil {
 		return nil, postErr
@@ -56,5 +56,13 @@ func DeleteUserPost(id string, username string) (bool, *response.RestErr) {
 		return false, getErr
 	}
 	return res, nil
+}
 
+func GetOwnPost(username string, limit int64, key *domain.ExlusiveStartKeyUsername) ([]domain.Timeline, *domain.PaginationTimeline, *response.RestErr) {
+	t := &domain.Timeline{}
+	res, pagination, getErr := t.GetOwnUserPost(username, limit, key)
+	if getErr != nil {
+		return nil, nil, getErr
+	}
+	return res, pagination, nil
 }
