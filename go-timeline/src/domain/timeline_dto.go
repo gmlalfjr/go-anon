@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -49,4 +50,29 @@ type Timeline struct {
 func (t *Timeline) Validate() error {
 	validate := validator.New()
 	return validate.Struct(t)
+}
+
+func (t * Timeline) ValidateMapType(evaluatedKey map[string] string, timelineType string) error {
+	if evaluatedKey["id"] != "" {
+		if timelineType == "ALL" {
+			if evaluatedKey["status"] == "" || evaluatedKey["createdAt"] == "" {
+				return errors.New("must Input all parameter for pagination")
+			}
+		} else {
+			if evaluatedKey["type"] == "" || evaluatedKey["createdAt"] == "" {
+				return errors.New("must Input all parameter for pagination")
+			}
+		}
+	}
+	return nil
+}
+
+
+func (t * Timeline) ValidateGetOwnAllPost(evaluatedKey map[string] string, username string) error {
+	if evaluatedKey["id"] != "" {
+		if evaluatedKey["username"] == "" || evaluatedKey["createdAt"] == "" {
+			return errors.New("must Input all parameter for pagination")
+		}
+	}
+	return nil
 }

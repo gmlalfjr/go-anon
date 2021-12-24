@@ -52,6 +52,14 @@ func GetTimeline( limit int64, key map[string] string, postType string) ([]domai
 	t := &domain.Timeline{
 		Type: postType,
 	}
+	err := t.ValidateMapType(key, postType)
+	if err != nil {
+		return nil, nil, &response.RestErr{
+			Error: err.Error(),
+			Message: "Validation Error",
+			Status: 400,
+		}
+	}
 	res, pagination, getErr := t.GetTimeline(limit, key)
 	if getErr != nil {
 		return nil, nil, getErr
@@ -81,7 +89,14 @@ func DeleteUserPost(id string, username string) (bool, *response.RestErr) {
 
 func GetOwnPost(username string, limit int64, key map[string] string) ([]domain.Timeline, *domain.PaginationTimelineById, *response.RestErr) {
 	t := &domain.Timeline{}
-
+	err := t.ValidateGetOwnAllPost(key, username)
+	if err != nil {
+		return nil, nil, &response.RestErr{
+			Error: err.Error(),
+			Message: "Validation Error",
+			Status: 400,
+		}
+	}
 	res, pagination, getErr := t.GetOwnUserPost(username, limit, key)
 	if getErr != nil {
 		return nil, nil, getErr
