@@ -13,6 +13,12 @@ type PaginationTimeline struct {
 	Status    string `json:"status"`
 }
 
+type PaginationTimelineById struct {
+	Id   string `json:"id"`
+	CreatedAt string `json:"createdAt"`
+	Username string `json:"username"`
+}
+
 type ExlusiveStartKey struct {
 	Id        string `json:"id"`
 	Type      string `json:"type"`

@@ -12,6 +12,16 @@ import (
 func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	username := request.RequestContext.Authorizer["username"].(string)
 	limit := request.QueryStringParameters["limit"]
+	lastEvaluatedKey := request.QueryStringParameters["lastEvaluatedKey"]
+	createdAtKey := request.QueryStringParameters["createdAt"]
+	var key map[string] string
+	if lastEvaluatedKey != "" {
+		key = map[string] string {
+			"id": lastEvaluatedKey,
+			"createdAt": createdAtKey,
+			"username": username,
+		}
+	}
 	if limit == ""{
 		limit = "10"
 	}
@@ -24,11 +34,7 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		})
 	}
 
-	res, pagination, errGetTimeline := services.GetOwnPost(username, convertLimitDataType)
-
-	if limit == "" {
-		limit = "10"
-	}
+	res, pagination, errGetTimeline := services.GetOwnPost(username, convertLimitDataType, key)
 
 	if errGetTimeline != nil {
 		return response.FailResponse(&response.ErrorWrapper{

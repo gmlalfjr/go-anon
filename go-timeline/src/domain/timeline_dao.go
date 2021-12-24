@@ -2,12 +2,10 @@ package domain
 
 import (
 	"errors"
+	"github.com/gmlalfjr/go-anon/go-timeline/src/repositories"
 	"log"
-	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -17,11 +15,7 @@ import (
 const timeDurationPost = -1
 
 func (t *Timeline) PostTimeline() *response.RestErr {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	dynamo := dynamodb.New(sess)
-	data, errGetDetail := t.GetDetail(t.Username)
+	data, errGetDetail := t.GetDetailLasUserPost(t.Username)
 	if errGetDetail != nil {
 		log.Println("Error marshalling item: ", errGetDetail.Error)
 		return response.Error("Error when marshalling dyanmodb item", 400, errors.New(errGetDetail.Error))
@@ -36,11 +30,7 @@ func (t *Timeline) PostTimeline() *response.RestErr {
 		log.Println("Error marshalling item: ", err.Error())
 		return response.Error("Error when marshalling create dyanmodb item", 400, err)
 	}
-	input := &dynamodb.PutItemInput{
-		Item:      item,
-		TableName: aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
-	}
-	_, err = dynamo.PutItem(input)
+	err = repositories.CreateTimeline(item)
 	if err != nil {
 		log.Println("Got error calling PutItem: ", err.Error())
 		return response.Error("Error when Insert Item", 500, err)
@@ -48,57 +38,24 @@ func (t *Timeline) PostTimeline() *response.RestErr {
 	return nil
 }
 
-func (t *Timeline) GetTimeline(limit int64, key *ExlusiveStartKey) ([]Timeline, *PaginationTimeline, *response.RestErr) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	dynamo := dynamodb.New(sess)
-	dates := time.Now().UTC().String()
-	params := &dynamodb.QueryInput{
-		TableName:        aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
-		Limit:            aws.Int64(int64(limit)),
-		ScanIndexForward: aws.Bool(false),
-	}
-
+func (t *Timeline) GetTimeline(limit int64, key map[string] string) ([]Timeline, *PaginationTimeline, *response.RestErr) {
+	var query *dynamodb.QueryOutput
+	var err error
 	if t.Type == "ALL" {
-		params.KeyConditionExpression = aws.String("#status = :status and #createdAt > :createdAt")
-		params.IndexName = aws.String("statusAndCreatedAtGSI")
-		params.ExpressionAttributeValues = map[string]*dynamodb.AttributeValue{
-			":status":    {S: aws.String("OK")},
-			":createdAt": {S: aws.String(dates)},
+		query, err =repositories.GetAllTimeline(limit, key)
+		if err != nil {
+			log.Println("Got Error When Get All Timeline Data", err)
+			return nil, nil, response.Error("Got Error When Get All Timeline Data", 500, err)
 		}
-		params.ExpressionAttributeNames = map[string]*string{
-			"#status":    aws.String("status"),
-			"#createdAt": aws.String("createdAt"),
-		}
-		if key != nil && key.Id != "" {
-			params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
-				"id":        {S: aws.String(key.Id)},
-				"status":    {S: aws.String(key.Status)},
-				"createdAt": {S: aws.String(key.CreatedAt)},
-			}
-		}
-	} else {
-		params.KeyConditionExpression = aws.String("#type = :type and #createdAt > :createdAt")
-		params.IndexName = aws.String("typeAndCreatedAtGSI")
-		params.ExpressionAttributeValues = map[string]*dynamodb.AttributeValue{
-			":type":      {S: aws.String(t.Type)},
-			":createdAt": {S: aws.String(dates)},
-		}
-		params.ExpressionAttributeNames = map[string]*string{
-			"#type":      aws.String("type"),
-			"#createdAt": aws.String("createdAt"),
-		}
-		if key != nil && key.Id != "" {
-			params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
-				"id":        {S: aws.String(key.Id)},
-				"type":      {S: aws.String(key.Type)},
-				"createdAt": {S: aws.String(key.CreatedAt)},
-			}
-		}
-	}
 
-	query, err := dynamo.Query(params)
+	} else {
+		query, err =repositories.GetAllTimelineByType(limit,t.Type, key)
+		if err != nil {
+			log.Println("Got Error When Get All Timeline Data", err)
+			return nil, nil, response.Error("Got Error When Get All Timeline Data", 500, err)
+		}
+
+	}
 	if err != nil {
 		return nil, nil, response.Error("Failed Query List Timeline", 500, err)
 	}
@@ -128,29 +85,8 @@ func (t *Timeline) GetTimeline(limit int64, key *ExlusiveStartKey) ([]Timeline, 
 	return results, &pagination, nil
 }
 
-func (t *Timeline) GetDetail(username string) (*Timeline, *response.RestErr) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	dynamo := dynamodb.New(sess)
-	dates := time.Now().UTC().String()
-	params := &dynamodb.QueryInput{
-		TableName:              aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
-		KeyConditionExpression: aws.String("#username = :username and #createdAt > :createdAt"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":username":  {S: aws.String(username)},
-			":createdAt": {S: aws.String(dates)},
-		},
-		ExpressionAttributeNames: map[string]*string{
-			"#username":  aws.String("username"),
-			"#createdAt": aws.String("createdAt"),
-		},
-		Limit:            aws.Int64(1),
-		IndexName:        aws.String("usernameAndCreatedAtGSI"),
-		ScanIndexForward: aws.Bool(false),
-	}
-
-	query, err := dynamo.Query(params)
+func (t *Timeline) GetDetailLasUserPost(username string) (*Timeline, *response.RestErr) {
+	query, err := repositories.GetLastUserPost(username)
 	if err != nil {
 		return nil, response.Error("Failed Query Get Last Item", 500, err)
 	}
@@ -179,18 +115,7 @@ func (t *Timeline) GetDetail(username string) (*Timeline, *response.RestErr) {
 }
 
 func (t *Timeline) GetTimelineDetail(id string) (*Timeline, *response.RestErr) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	dynamo := dynamodb.New(sess)
-	params := &dynamodb.GetItemInput{
-		TableName: aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
-
-		Key: map[string]*dynamodb.AttributeValue{
-			"id": {S: aws.String(id)},
-		},
-	}
-	get, err := dynamo.GetItem(params)
+	get, err := repositories.GetDetail(id)
 	if err != nil {
 		return nil, response.Error("Failed Get Item", 500, err)
 	}
@@ -215,57 +140,19 @@ func (t *Timeline) DeleteUserPost(id string, username string) (bool, *response.R
 	if data.Username != username {
 		return false, response.Error("Cant delete this post", 404, errors.New("not authorize to delete this post"))
 	}
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	dynamo := dynamodb.New(sess)
-	params := &dynamodb.DeleteItemInput{
-		TableName: aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
-
-		Key: map[string]*dynamodb.AttributeValue{
-			"id": {S: aws.String(id)},
-		},
-	}
-	_, errDel := dynamo.DeleteItem(params)
-	if errDel != nil {
-		return false, response.Error("Failed Delete Item", 500, errDel)
+	errDelete := repositories.Delete(id)
+	if errDelete != nil {
+		return false, response.Error("Failed Delete Item", 500,errDelete)
 	}
 
 	return true, nil
 }
 
-func (t *Timeline) GetOwnUserPost(username string, limit int64, key *ExlusiveStartKeyUsername) ([]Timeline, *PaginationTimeline, *response.RestErr) {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-	dynamo := dynamodb.New(sess)
-	dates := time.Now().UTC().String()
-	params := &dynamodb.QueryInput{
-		TableName:              aws.String(os.Getenv("TIMELINE_TABLE_NAME")),
-		KeyConditionExpression: aws.String("#username = :username and #createdAt > :createdAt"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":username":  {S: aws.String(username)},
-			":createdAt": {S: aws.String(dates)},
-		},
-		ExpressionAttributeNames: map[string]*string{
-			"#username":  aws.String("username"),
-			"#createdAt": aws.String("createdAt"),
-		},
-		Limit:            aws.Int64(int64(limit)),
-		IndexName:        aws.String("usernameAndCreatedAtGSI"),
-		ScanIndexForward: aws.Bool(false),
-	}
+func (t *Timeline) GetOwnUserPost(username string, limit int64, key map[string] string) ([]Timeline, *PaginationTimelineById, *response.RestErr) {
+	query, err :=repositories.GetAllById(username, limit, key)
 
-	if key.Id != "" {
-		params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
-			"id":   {S: aws.String(key.Id)},
-			"type": {S: aws.String(key.Username)},
-		}
-	}
-
-	query, err := dynamo.Query(params)
 	if err != nil {
-		return nil, nil, response.Error("Failed Query List Timeline", 500, err)
+		return nil, nil, response.Error("Failed Query Own List Timeline", 500, err)
 	}
 
 	var results []Timeline
@@ -280,13 +167,13 @@ func (t *Timeline) GetOwnUserPost(username string, limit int64, key *ExlusiveSta
 
 		results = append(results, timeline)
 	}
-	pagination := PaginationTimeline{}
+	pagination := PaginationTimelineById{}
 	err = dynamodbattribute.UnmarshalMap(query.LastEvaluatedKey, &pagination)
 	if err != nil {
 		log.Println("Got error unmarshalling", err)
-		return nil, nil, response.Error("Got error unmarshallin", 500, err)
+		return nil, nil, response.Error("Got error unmarshalling", 500, err)
 	}
-	if pagination.Id == "" && pagination.Type == "" {
+	if pagination.Id == "" && pagination.Username == "" {
 		return results, nil, nil
 	}
 

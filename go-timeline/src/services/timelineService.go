@@ -52,16 +52,7 @@ func GetTimeline( limit int64, key map[string] string, postType string) ([]domai
 	t := &domain.Timeline{
 		Type: postType,
 	}
-	var exlusive *domain.ExlusiveStartKey
-	if key["id"] != "" {
-		exlusive = &domain.ExlusiveStartKey{
-			Id:        key["id"],
-			Type:      key["type"],
-			CreatedAt: key["createdAt"],
-			Status:    key["status"],
-		}
-	}
-	res, pagination, getErr := t.GetTimeline(limit, exlusive)
+	res, pagination, getErr := t.GetTimeline(limit, key)
 	if getErr != nil {
 		return nil, nil, getErr
 	}
@@ -88,10 +79,10 @@ func DeleteUserPost(id string, username string) (bool, *response.RestErr) {
 	return res, nil
 }
 
-func GetOwnPost(username string, limit int64) ([]domain.Timeline, *domain.PaginationTimeline, *response.RestErr) {
-	exlusive := &domain.ExlusiveStartKeyUsername{}
+func GetOwnPost(username string, limit int64, key map[string] string) ([]domain.Timeline, *domain.PaginationTimelineById, *response.RestErr) {
 	t := &domain.Timeline{}
-	res, pagination, getErr := t.GetOwnUserPost(username, limit, exlusive)
+
+	res, pagination, getErr := t.GetOwnUserPost(username, limit, key)
 	if getErr != nil {
 		return nil, nil, getErr
 	}
