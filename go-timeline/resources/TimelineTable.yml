@@ -26,11 +26,11 @@ TimelineTable:
             KeyType: RANGE
         Projection:
           ProjectionType: ALL
-      - IndexName: statusAndTypeGSI
+      - IndexName: typeAndCreatedAtGSI
         KeySchema:
-          - AttributeName: status
-            KeyType: HASH
           - AttributeName: type
+            KeyType: HASH
+          - AttributeName: createdAt
             KeyType: RANGE
         Projection:
           ProjectionType: ALL
