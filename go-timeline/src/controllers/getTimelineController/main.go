@@ -5,27 +5,25 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/gmlalfjr/go-anon/go-timeline/src/domain"
 	"github.com/gmlalfjr/go-anon/go-timeline/src/services"
 	response "github.com/gmlalfjr/go_CommonResponse/utils"
 )
 
 
 func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	exlusive := &domain.ExlusiveStartKey{}
 	limit := request.QueryStringParameters["limit"]
 	statusKey := request.QueryStringParameters["status"]
 	postType := request.QueryStringParameters["type"]
 	createdAtKey := request.QueryStringParameters["createdAt"]
 	lastEvaluatedKey := request.QueryStringParameters["lastEvaluatedKey"]
 
-	typeKey := request.QueryStringParameters["type"]
+	var key map[string] string
 	if lastEvaluatedKey != "" {
-		exlusive = &domain.ExlusiveStartKey{
-			Id:        lastEvaluatedKey,
-			Type:      typeKey,
-			CreatedAt: createdAtKey,
-			Status:    statusKey,
+		key = map[string] string {
+			"id": lastEvaluatedKey,
+			"createdAt": createdAtKey,
+			"status": statusKey,
+			"type": postType,
 		}
 	}
 
@@ -43,11 +41,9 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 			StatusCode: 400,
 		})
 	}
-	timeline := &domain.Timeline{
-		Type: postType,
-	}
 
-	res, pagination, errGetTimeline := services.GetTimeline(timeline, convertLimitDataType, exlusive)
+
+	res, pagination, errGetTimeline := services.GetTimeline(convertLimitDataType, key, postType)
 
 	if errGetTimeline != nil {
 		return response.FailResponse(&response.ErrorWrapper{

@@ -5,13 +5,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/gmlalfjr/go-anon/go-timeline/src/domain"
 	"github.com/gmlalfjr/go-anon/go-timeline/src/services"
 	response "github.com/gmlalfjr/go_CommonResponse/utils"
 )
 
 func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	exlusive := &domain.ExlusiveStartKeyUsername{}
 	username := request.RequestContext.Authorizer["username"].(string)
 	limit := request.QueryStringParameters["limit"]
 	if limit == ""{
@@ -26,7 +24,7 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 		})
 	}
 
-	res, pagination, errGetTimeline := services.GetOwnPost(username, convertLimitDataType, exlusive)
+	res, pagination, errGetTimeline := services.GetOwnPost(username, convertLimitDataType)
 
 	if limit == "" {
 		limit = "10"

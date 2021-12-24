@@ -23,7 +23,6 @@ func Handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 
 	return response.SuccessResponse(&response.SuccessWrapper{
 		Message: "Success Delete Data",
-		//Data:       res,
 		StatusCode: 200,
 	})
 }

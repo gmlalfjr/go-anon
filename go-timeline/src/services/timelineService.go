@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/gmlalfjr/go-anon/go-timeline/src/domain"
@@ -8,7 +9,24 @@ import (
 	"github.com/google/uuid"
 )
 
-func PostTimeline(t *domain.Timeline, username string) (*domain.Timeline, *response.RestErr) {
+func PostTimeline(username string, timelineString string) (*domain.Timeline, *response.RestErr) {
+	t := &domain.Timeline{}
+	errUnmarshal := json.Unmarshal([]byte(timelineString), &t)
+	if errUnmarshal != nil {
+		return nil, &response.RestErr{
+			Error: errUnmarshal.Error(),
+			Message: "Error When unmarshalling",
+			Status: 500,
+		}
+	}
+
+	if errValidate := t .Validate(); errValidate != nil {
+		return nil, &response.RestErr{
+			Error: errUnmarshal.Error(),
+			Message: "Error Validating Payload",
+			Status: 500,
+		}
+	}
 	date := time.Now().UTC()
 	id := uuid.New().String()
 	timelineId := uuid.New().String()
@@ -30,8 +48,20 @@ func PostTimeline(t *domain.Timeline, username string) (*domain.Timeline, *respo
 	return t, nil
 }
 
-func GetTimeline(t *domain.Timeline, limit int64, key *domain.ExlusiveStartKey) ([]domain.Timeline, *domain.PaginationTimeline, *response.RestErr) {
-	res, pagination, getErr := t.GetTimeline(limit, key)
+func GetTimeline( limit int64, key map[string] string, postType string) ([]domain.Timeline, *domain.PaginationTimeline, *response.RestErr) {
+	t := &domain.Timeline{
+		Type: postType,
+	}
+	var exlusive *domain.ExlusiveStartKey
+	if key["id"] != "" {
+		exlusive = &domain.ExlusiveStartKey{
+			Id:        key["id"],
+			Type:      key["type"],
+			CreatedAt: key["createdAt"],
+			Status:    key["status"],
+		}
+	}
+	res, pagination, getErr := t.GetTimeline(limit, exlusive)
 	if getErr != nil {
 		return nil, nil, getErr
 	}
@@ -58,9 +88,10 @@ func DeleteUserPost(id string, username string) (bool, *response.RestErr) {
 	return res, nil
 }
 
-func GetOwnPost(username string, limit int64, key *domain.ExlusiveStartKeyUsername) ([]domain.Timeline, *domain.PaginationTimeline, *response.RestErr) {
+func GetOwnPost(username string, limit int64) ([]domain.Timeline, *domain.PaginationTimeline, *response.RestErr) {
+	exlusive := &domain.ExlusiveStartKeyUsername{}
 	t := &domain.Timeline{}
-	res, pagination, getErr := t.GetOwnUserPost(username, limit, key)
+	res, pagination, getErr := t.GetOwnUserPost(username, limit, exlusive)
 	if getErr != nil {
 		return nil, nil, getErr
 	}

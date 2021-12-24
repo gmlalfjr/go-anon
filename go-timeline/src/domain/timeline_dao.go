@@ -71,7 +71,7 @@ func (t *Timeline) GetTimeline(limit int64, key *ExlusiveStartKey) ([]Timeline, 
 			"#status":    aws.String("status"),
 			"#createdAt": aws.String("createdAt"),
 		}
-		if key.Id != "" {
+		if key != nil && key.Id != "" {
 			params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
 				"id":        {S: aws.String(key.Id)},
 				"status":    {S: aws.String(key.Status)},
@@ -89,7 +89,7 @@ func (t *Timeline) GetTimeline(limit int64, key *ExlusiveStartKey) ([]Timeline, 
 			"#type":      aws.String("type"),
 			"#createdAt": aws.String("createdAt"),
 		}
-		if key.Id != "" {
+		if key != nil && key.Id != "" {
 			params.ExclusiveStartKey = map[string]*dynamodb.AttributeValue{
 				"id":        {S: aws.String(key.Id)},
 				"type":      {S: aws.String(key.Type)},
